@@ -22,7 +22,7 @@ This project focuses on object detection using RGB and RGB-D data, with experime
 ### 1. Clone the Repository
 
 ```bash
-git clone <repo_url>
+git clone https://github.com/matthewroll112/snappy-experiments.git
 cd snappy-experiments
 ```
 
