@@ -16,8 +16,8 @@ This project focuses on object detection using RGB and RGB-D data, with experime
 
 ## Environment Setup
 
-[!IMPORTANT]
-Using a virtual environment such as Conda is highly recommended when installing packages but is not required
+>[!IMPORTANT]
+>Using a virtual environment such as Conda is highly recommended when installing packages but is not required
 
 ### 1. Clone the Repository
 
