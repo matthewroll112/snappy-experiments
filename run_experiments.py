@@ -12,9 +12,9 @@ from experiments.registry import create_experiment_components
 
 DATASETS = {
   "base": Path("data/snappy-v2"),
-  "promptda": Path("data/snappy-promptda-v2"),
-  "da2": Path("data/snappy-da2-v2"),
-  "lingbot": Path("data/snappy-lingbot-v2")
+  "promptda": Path("data/snappy-v2-promptda"),
+  "da2": Path("data/snappy-v2-da2"),
+  "lingbot": Path("data/snappy-v2-lingbot")
 }
 
 RESULTS_DIR = Path("results")
