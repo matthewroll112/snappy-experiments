@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 Both can be checked with:
 ```bash
-python -c "import torch; print("PyTorch:", torch.__version__); print("CUDA available:", torch.cuda.is_available())"
+python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
 ```
 A different PyTorch build may need to be installed depending on the CUDA version available on the system.
 
