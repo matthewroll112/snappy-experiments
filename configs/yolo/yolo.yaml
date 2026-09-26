@@ -1,8 +1,8 @@
 model: yolo
 
 training:
-  epochs: 2
-  batch_size: 4
+  epochs: 100
+  batch_size: 16
   num_workers: 4
   learning_rate: 0.0001
   weight_decay: 0.0
@@ -14,7 +14,54 @@ experiments:
     fusion: null
     dataset: promptda
 
+  - name: early_promptda
+    modality: rgbd
+    fusion: early
+    dataset: promptda
+  - name: early_da2
+    modality: rgbd
+    fusion: early
+    dataset: da2
+  - name: early_lingbot
+    modality: rgbd
+    fusion: early
+    dataset: lingbot
+
   - name: mid_promptda
     modality: rgbd
     fusion: mid
     dataset: promptda
+  - name: mid_da2
+    modality: rgbd
+    fusion: mid
+    dataset: da2
+  - name: mid_lingbot
+    modality: rgbd
+    fusion: mid
+    dataset: lingbot
+
+  - name: late_promptda
+    modality: rgbd
+    fusion: late
+    dataset: promptda
+  - name: late_da2
+    modality: rgbd
+    fusion: late
+    dataset: da2
+  - name: late_lingbot
+    modality: rgbd
+    fusion: late
+    dataset: lingbot
+
+  - name: cafim_gcffm_promptda
+    modality: rgbd
+    fusion: cafim_gcffm
+    dataset: promptda
+  - name: cafim_gcffm_da2
+    modality: rgbd
+    fusion: cafim_gcffm
+    dataset: da2
+  - name: cafim_gcffm_lingbot
+    modality: rgbd
+    fusion: cafim_gcffm
+    dataset: lingbot
