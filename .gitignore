@@ -34,3 +34,5 @@ results/*
 .env
 .env.*
 *.local
+
+.vscode
