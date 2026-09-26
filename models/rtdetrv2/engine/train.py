@@ -4,7 +4,7 @@ from tqdm import tqdm
 from .targets import prepare_rtdetr_targets
 
 
-def train_one_epoch(model, criterion, loader, optimizer, scaler, device, epoch):
+def train_one_epoch(model, loader, criterion, optimizer, scaler, device, epoch):
   """Train an RT-DETR model for one epoch."""
 
   model.train()

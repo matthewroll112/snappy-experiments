@@ -26,6 +26,10 @@ class RGBYOLODetector(nn.Module):
     super().__init__()
     self.model = load_pretrained_model(num_classes)
 
+  @property
+  def detect(self):
+    return self.model.model[-1]
+
   def forward(self, rgb, depth=None):
     return self.model(rgb)
 
@@ -58,6 +62,13 @@ class RGBDYOLODetector(nn.Module):
       raise ValueError(f"Unknown fusion type: {fusion_type}")
 
     self.args = pretrained_model.args
+
+  @property
+  def detect(self):
+    if self.model is not None:
+      return self.model.model[-1]
+
+    return self.head.detect
 
   @property
   def model(self):

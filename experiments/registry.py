@@ -1,5 +1,3 @@
-from ultralytics.utils.loss import v8DetectionLoss
-
 from models.efficientdet import RGBDEfficientDetDetector, RGBEfficientDetDetector
 from models.efficientdet.engine import EfficientDetCriterion
 from models.efficientdet.engine import train_one_epoch as train_efficientdet
@@ -10,6 +8,7 @@ from models.rtdetrv2.engine import train_one_epoch as train_rtdetr
 from models.rtdetrv2.engine import validate_rtdetr
 
 from models.yolo import RGBDYOLODetector, RGBYOLODetector
+from models.yolo.engine import create_yolo_criterion
 from models.yolo.engine import train_one_epoch as train_yolo
 from models.yolo.engine import validate_yolo
 
@@ -29,7 +28,7 @@ def create_yolo_components(modality, fusion, num_classes, device):
   else:
     raise ValueError(f"Unknown modality: {modality}")
 
-  criterion = v8DetectionLoss(model)
+  criterion = create_yolo_criterion(model)
 
   return {
     "model": model,
