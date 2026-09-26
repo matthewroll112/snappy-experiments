@@ -50,6 +50,8 @@ def configure_detection_head(model, num_classes):
   detect.nc = num_classes
   detect.no = detect.reg_max * 4 + num_classes
 
+  detect.bias_init()
+
 def create_depth_stem(rgb_stem):
   """Create a single-channel YOLO stem from a pretrained RGB stem."""
 
