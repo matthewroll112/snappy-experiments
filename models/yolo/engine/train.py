@@ -27,6 +27,7 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, device, epoch):
     with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
       predictions = model(rgb, depth)
       loss, loss_items = criterion(predictions, yolo_targets)
+      loss = loss.sum()
 
     scaler.scale(loss).backward()
     scaler.step(optimizer)
