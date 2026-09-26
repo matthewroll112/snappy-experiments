@@ -1,8 +1,7 @@
+import copy
+
 import torch
 import torch.nn as nn
-
-import copy
-import math
 
 
 def convert_to_four_channel(model):
@@ -31,30 +30,6 @@ def convert_to_four_channel(model):
 
   stem.conv = new_conv
 
-def configure_detection_head(model, num_classes):
-  """Change only the class-dependent YOLO outputs."""
-
-  detect = model.model[-1]
-
-  for branch, stride in zip(detect.cv3, detect.stride):
-    old_conv = branch[-1]
-
-    new_conv = nn.Conv2d(
-      in_channels=old_conv.in_channels,
-      out_channels=num_classes,
-      kernel_size=old_conv.kernel_size,
-      stride=old_conv.stride,
-      padding=old_conv.padding,
-      bias=old_conv.bias is not None
-    )
-
-    with torch.no_grad():
-      new_conv.bias.fill_(math.log(5 / num_classes / (640 / stride.item()) ** 2))
-
-    branch[-1] = new_conv
-
-  detect.nc = num_classes
-  detect.no = detect.reg_max * 4 + num_classes
 
 def create_depth_stem(rgb_stem):
   """Create a single-channel YOLO stem from a pretrained RGB stem."""
