@@ -45,6 +45,7 @@ Both can be checked with:
 ```bash
 python -c "import torch; print("PyTorch:", torch.__version__); print("CUDA available:", torch.cuda.is_available())"
 ```
+A different version may need to be installed in order for CUDA to work. Versions can be found [here](https://pytorch.org/get-started/previous-versions/) 
 
 ## Running Experiments
 
