@@ -1,10 +1,10 @@
 import torch
 from tqdm import tqdm
 
-from .targets import prepare_detr_targets
+from .targets import prepare_rtdetr_targets
 
 
-def train_one_epoch(model, loader, optimizer, scaler, device, epoch):
+def train_one_epoch(model, criterion, loader, optimizer, scaler, device, epoch):
   """Train an RT-DETR model for one epoch."""
 
   model.train()
@@ -23,7 +23,7 @@ def train_one_epoch(model, loader, optimizer, scaler, device, epoch):
     depth = depth.to(device, non_blocking=True)
     targets = [{k: v.to(device, non_blocking=True) for k, v in target.items()} for target in targets]
 
-    detr_targets = prepare_detr_targets(targets)
+    detr_targets = prepare_rtdetr_targets(targets)
 
     optimizer.zero_grad(set_to_none=True)
 
