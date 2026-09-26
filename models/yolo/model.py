@@ -28,7 +28,10 @@ class RGBYOLODetector(nn.Module):
 
   @property
   def detect(self):
-    return self.model.model[-1]
+    if self.yolo_model is not None:
+      return self.yolo_model.model[-1]
+
+    return self.head.detect
 
   def forward(self, rgb, depth=None):
     return self.model(rgb)
@@ -65,17 +68,10 @@ class RGBDYOLODetector(nn.Module):
 
   @property
   def detect(self):
-    if self.model is not None:
-      return self.model.model[-1]
+    if self.yolo_model is not None:
+      return self.yolo_model.model[-1]
 
     return self.head.detect
-
-  @property
-  def model(self):
-    if self.yolo_model is not None:
-      return self.yolo_model.model
-
-    return [self.head.detect]
 
   def forward(self, rgb, depth):
     if self.yolo_model is not None:
