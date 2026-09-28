@@ -97,6 +97,15 @@ def save_checkpoint(path, model, optimizer, epoch, train_metrics, val_metrics):
 
   torch.save(checkpoint, path)
 
+def create_scheduler(optimizer, epochs, min_learning_rate):
+  """Create a cosine annealing learning rate scheduler."""
+
+  return torch.optim.lr_scheduler.CosineAnnealingLR(
+    optimizer,
+    T_max=epochs,
+    eta_min=min_learning_rate
+  )
+
 
 def run_training(
   model,
@@ -106,6 +115,7 @@ def run_training(
   train_fn,
   val_fn,
   optimizer,
+  scheduler,
   device,
   class_names,
   epochs,
@@ -147,3 +157,5 @@ def run_training(
     val_summary = " | ".join(f"{name}: {value:.4f}" for name, value in val_metrics.items())
 
     print(f"Epoch {epoch:03d}/{epochs:03d} | LR: {learning_rate:.6f} | {train_summary} | {val_summary} | Best mAP: {best_map:.4f}")
+
+    scheduler.step()

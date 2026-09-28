@@ -6,7 +6,7 @@ import traceback
 import torch
 import yaml
 
-from experiments.common import create_dataloaders, create_optimizer, run_training, set_seed
+from experiments.common import create_dataloaders, create_optimizer, run_training, set_seed, create_scheduler
 from experiments.registry import create_experiment_components
 
 
@@ -56,6 +56,7 @@ def run_config(config, device):
   batch_size = training["batch_size"]
   num_workers = training["num_workers"]
   learning_rate = training["learning_rate"]
+  min_learning_rate = training["min_learning_rate"]
   weight_decay = training.get("weight_decay", 0.0)
   seed = training["seed"]
 
@@ -72,6 +73,7 @@ def run_config(config, device):
     model = None
     criterion = None
     optimizer = None
+    scheduler = None
     train_loader = None
     val_loader = None
 
@@ -116,6 +118,7 @@ def run_config(config, device):
       val_fn = components["val_fn"]
 
       optimizer = create_optimizer(model, learning_rate, weight_decay)
+      scheduler = create_scheduler(optimizer, epochs, min_learning_rate)
 
       run_training(
         model=model,
@@ -125,6 +128,7 @@ def run_config(config, device):
         train_fn=train_fn,
         val_fn=val_fn,
         optimizer=optimizer,
+        scheduler=scheduler,
         device=device,
         class_names=CLASS_NAMES,
         epochs=epochs,
@@ -149,6 +153,7 @@ def run_config(config, device):
       del model
       del criterion
       del optimizer
+      del scheduler
       del train_loader
       del val_loader
 
