@@ -6,7 +6,7 @@ import traceback
 import torch
 import yaml
 
-from experiments.common import create_dataloaders, create_optimizer, create_scaler, run_training, set_seed
+from experiments.common import create_dataloaders, create_optimizer, run_training, set_seed
 from experiments.registry import create_experiment_components
 
 
@@ -72,7 +72,6 @@ def run_config(config, device):
     model = None
     criterion = None
     optimizer = None
-    scaler = None
     train_loader = None
     val_loader = None
 
@@ -117,7 +116,6 @@ def run_config(config, device):
       val_fn = components["val_fn"]
 
       optimizer = create_optimizer(model, learning_rate, weight_decay)
-      scaler = create_scaler(device)
 
       run_training(
         model=model,
@@ -127,7 +125,6 @@ def run_config(config, device):
         train_fn=train_fn,
         val_fn=val_fn,
         optimizer=optimizer,
-        scaler=scaler,
         device=device,
         class_names=CLASS_NAMES,
         epochs=epochs,
@@ -152,7 +149,6 @@ def run_config(config, device):
       del model
       del criterion
       del optimizer
-      del scaler
       del train_loader
       del val_loader
 

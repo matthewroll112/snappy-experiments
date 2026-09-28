@@ -10,7 +10,6 @@ def validate_rtdetr(model, loader, device, class_names, epoch=None):
   model.eval()
 
   evaluator = DetectionEvaluator(device, class_names)
-  use_amp = device.type == "cuda"
 
   progress_bar = tqdm(
     loader,
@@ -34,8 +33,7 @@ def validate_rtdetr(model, loader, device, class_names, epoch=None):
       for target in targets
     ]
 
-    with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
-      outputs = model(rgb, depth)
+    outputs = model(rgb, depth)
 
     probabilities = outputs.logits.sigmoid()
     predictions = []

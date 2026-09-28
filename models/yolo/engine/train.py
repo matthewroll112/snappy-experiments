@@ -4,15 +4,13 @@ from tqdm import tqdm
 from .targets import prepare_yolo_targets
 
 
-def train_one_epoch(model, loader, criterion, optimizer, scaler, device, epoch):
+def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
   model.train()
 
   total_loss = 0.0
   total_box = 0.0
   total_cls = 0.0
   total_dfl = 0.0
-
-  use_amp = device.type == "cuda"
 
   progress_bar = tqdm(loader, desc=f"Train {epoch:03d}", leave=False, dynamic_ncols=True)
 
@@ -24,14 +22,12 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, device, epoch):
 
     optimizer.zero_grad(set_to_none=True)
 
-    with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
-      predictions = model(rgb, depth)
-      loss, loss_items = criterion(predictions, yolo_targets)
-      loss = loss.sum()
+    predictions = model(rgb, depth)
+    loss, loss_items = criterion(predictions, yolo_targets)
+    loss = loss.sum()
 
-    scaler.scale(loss).backward()
-    scaler.step(optimizer)
-    scaler.update()
+    loss.backward()
+    optimizer.step()
 
     total_loss += loss.item()
     total_box += loss_items[0].item()

@@ -4,14 +4,12 @@ from tqdm import tqdm
 from .targets import prepare_efficientdet_targets
 
 
-def train_one_epoch(model, loader, criterion, optimizer, scaler, device, epoch):
+def train_one_epoch(model, loader, criterion, optimizer, device, epoch):
   model.train()
 
   total_loss = 0.0
   total_class_loss = 0.0
   total_box_loss = 0.0
-
-  use_amp = device.type == "cuda"
 
   progress_bar = tqdm(loader, desc=f"Train {epoch:03d}", leave=False, dynamic_ncols=True)
 
@@ -30,18 +28,16 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, device, epoch):
 
     optimizer.zero_grad(set_to_none=True)
 
-    with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
-      class_outputs, box_outputs = model(rgb, depth)
+    class_outputs, box_outputs = model(rgb, depth)
 
-      loss, class_loss, box_loss = criterion(
-        class_outputs,
-        box_outputs,
-        efficientdet_targets
-      )
+    loss, class_loss, box_loss = criterion(
+      class_outputs,
+      box_outputs,
+      efficientdet_targets
+    )
 
-    scaler.scale(loss).backward()
-    scaler.step(optimizer)
-    scaler.update()
+    loss.backward()
+    optimizer.step()
 
     total_loss += loss.item()
     total_class_loss += class_loss.item()

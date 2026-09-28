@@ -28,18 +28,19 @@ def create_dataloaders(data_dir, batch_size, num_workers, image_size=(640, 640))
   val_dataset = SnappyDataset(root=data_dir, split="val", transform=get_val_transforms(image_size))
 
   train_loader = DataLoader(
-    train_dataset, 
-    batch_size=batch_size, 
-    shuffle=True, 
-    num_workers=num_workers, 
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    num_workers=num_workers,
     pin_memory=True,
     collate_fn=collate_fn
   )
+
   val_loader = DataLoader(
-    val_dataset, 
-    batch_size=batch_size, 
-    num_workers=num_workers, 
-    pin_memory=True, 
+    val_dataset,
+    batch_size=batch_size,
+    num_workers=num_workers,
+    pin_memory=True,
     collate_fn=collate_fn
   )
 
@@ -50,12 +51,6 @@ def create_optimizer(model, learning_rate, weight_decay=0.0):
   """Create the optimizer used for an experiment."""
 
   return torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-
-
-def create_scaler(device):
-  """Create an AMP gradient scaler."""
-
-  return torch.amp.GradScaler(device.type, enabled=device.type == "cuda")
 
 
 def create_csv(path, train_metric_names, val_metric_names):
@@ -86,7 +81,7 @@ def append_csv(path, epoch, learning_rate, train_metrics, val_metrics):
     writer.writerow(row)
 
 
-def save_checkpoint(path, model, optimizer, scaler, epoch, train_metrics, val_metrics):
+def save_checkpoint(path, model, optimizer, epoch, train_metrics, val_metrics):
   """Save the current best checkpoint."""
 
   path = Path(path)
@@ -96,7 +91,6 @@ def save_checkpoint(path, model, optimizer, scaler, epoch, train_metrics, val_me
     "epoch": epoch,
     "model_state_dict": model.state_dict(),
     "optimizer_state_dict": optimizer.state_dict(),
-    "scaler_state_dict": scaler.state_dict(),
     "train_metrics": train_metrics,
     "val_metrics": val_metrics
   }
@@ -104,7 +98,20 @@ def save_checkpoint(path, model, optimizer, scaler, epoch, train_metrics, val_me
   torch.save(checkpoint, path)
 
 
-def run_training(model, criterion, train_loader, val_loader, train_fn, val_fn, optimizer, scaler, device, class_names, epochs, output_dir, experiment_name):
+def run_training(
+  model,
+  criterion,
+  train_loader,
+  val_loader,
+  train_fn,
+  val_fn,
+  optimizer,
+  device,
+  class_names,
+  epochs,
+  output_dir,
+  experiment_name
+):
   """Run a complete object detection experiment."""
 
   output_dir = Path(output_dir)
@@ -118,7 +125,7 @@ def run_training(model, criterion, train_loader, val_loader, train_fn, val_fn, o
   val_metric_names = None
 
   for epoch in range(1, epochs + 1):
-    train_metrics = train_fn(model, train_loader, criterion, optimizer, scaler, device, epoch)
+    train_metrics = train_fn(model, train_loader, criterion, optimizer, device, epoch)
     val_metrics = val_fn(model, val_loader, device, class_names, epoch)
 
     learning_rate = optimizer.param_groups[0]["lr"]
@@ -134,7 +141,7 @@ def run_training(model, criterion, train_loader, val_loader, train_fn, val_fn, o
 
     if current_map > best_map:
       best_map = current_map
-      save_checkpoint(checkpoint_path, model, optimizer, scaler, epoch, train_metrics, val_metrics)
+      save_checkpoint(checkpoint_path, model, optimizer, epoch, train_metrics, val_metrics)
 
     train_summary = " | ".join(f"{name}: {value:.4f}" for name, value in train_metrics.items())
     val_summary = " | ".join(f"{name}: {value:.4f}" for name, value in val_metrics.items())

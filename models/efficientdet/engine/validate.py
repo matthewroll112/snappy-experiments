@@ -12,7 +12,6 @@ def validate_efficientdet(model, loader, device, class_names, epoch=None):
   model.eval()
 
   evaluator = DetectionEvaluator(device, class_names)
-  use_amp = device.type == "cuda"
 
   config = model.model.config
   anchors = Anchors.from_config(config).to(device)
@@ -38,9 +37,8 @@ def validate_efficientdet(model, loader, device, class_names, epoch=None):
       }
       for target in targets
     ]
-
-    with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
-      class_outputs, box_outputs = model(rgb, depth)
+    
+    class_outputs, box_outputs = model(rgb, depth)
 
     class_outputs, box_outputs, indices, classes = _post_process(
       class_outputs,

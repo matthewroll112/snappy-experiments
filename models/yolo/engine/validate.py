@@ -11,7 +11,6 @@ def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold
   model.eval()
 
   evaluator = DetectionEvaluator(device, class_names)
-  use_amp = device.type == "cuda"
 
   progress_bar = tqdm(
     loader,
@@ -35,8 +34,7 @@ def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold
       for target in targets
     ]
 
-    with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
-      outputs = model(rgb, depth)
+    outputs = model(rgb, depth)
 
     predictions = non_max_suppression(
       outputs,
