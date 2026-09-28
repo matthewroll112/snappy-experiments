@@ -9,8 +9,6 @@ class YOLOHead(nn.Module):
 
     layers = pretrained_model.model
 
-    self.args = pretrained_model.args
-
     self.upsample1 = copy.deepcopy(layers[10])
     self.concat1 = copy.deepcopy(layers[11])
     self.c2f1 = copy.deepcopy(layers[12])
