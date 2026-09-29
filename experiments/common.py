@@ -156,6 +156,6 @@ def run_training(
     train_summary = " | ".join(f"{name}: {value:.4f}" for name, value in train_metrics.items())
     val_summary = " | ".join(f"{name}: {value:.4f}" for name, value in val_metrics.items())
 
-    print(f"Epoch {epoch:03d}/{epochs:03d} | LR: {learning_rate:.6f} | {train_summary} | {val_summary} | Best mAP: {best_map:.4f}")
+    print(f"Epoch {epoch:03d}/{epochs:03d} | LR: {learning_rate:.10e} | {train_summary} | {val_summary} | Best mAP: {best_map:.4f}")
 
     scheduler.step()
