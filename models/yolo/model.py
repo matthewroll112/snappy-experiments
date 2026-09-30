@@ -11,7 +11,7 @@ from .backbones.utils import convert_to_four_channel
 from .backbones import MidFusionBackbone, LateFusionBackbone, CrossModalBackbone
 
 
-MODEL_NAME = "yolov8n.pt"
+MODEL_NAME = "yolov11l.pt"
 
 
 def load_pretrained_model(num_classes):
