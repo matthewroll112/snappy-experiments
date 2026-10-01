@@ -2,10 +2,10 @@ model: rtdetrv2
 
 training:
   epochs: 100
-  batch_size: 4
+  batch_size: 8
   num_workers: 4
-  learning_rate: 1.0e-05
-  min_learning_rate: 1.0e-07
+  learning_rate: 1.0e-5
+  min_learning_rate: 1.0e-7
   weight_decay: 0.0001
   seed: 13
 
@@ -153,6 +153,70 @@ experiments:
   dataset: lingbot
   modality: rgbd
   fusion_stage: late
+  fusion_type: mlp
+
+- name: late_partial_conv_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: conv
+- name: late_partial_conv_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: conv
+- name: late_partial_conv_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: conv
+
+- name: late_partial_add_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: add
+- name: late_partial_add_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: add
+- name: late_partial_add_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: add
+
+- name: late_partial_gated_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: gated
+- name: late_partial_gated_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: gated
+- name: late_partial_gated_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: gated
+
+- name: late_partial_mlp_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: mlp
+- name: late_partial_mlp_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late_partial
+  fusion_type: mlp
+- name: late_partial_mlp_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late_partial
   fusion_type: mlp
   
 - name: late_cafim_gcffm_promptda
