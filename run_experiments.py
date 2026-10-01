@@ -79,7 +79,8 @@ def run_config(config, device):
 
     try:
       modality = experiment["modality"]
-      fusion = experiment.get("fusion")
+      fusion_stage = experiment.get("fusion_stage")
+      fusion_type = experiment.get("fusion_type")
       dataset_name = experiment["dataset"]
 
       if dataset_name not in DATASETS:
@@ -89,11 +90,12 @@ def run_config(config, device):
 
       print()
       print("-" * 80)
-      print(f"Experiment: {experiment_name}")
-      print(f"Model:      {model_type}")
-      print(f"Modality:   {modality}")
-      print(f"Fusion:     {fusion}")
-      print(f"Dataset:    {dataset_name}")
+      print(f"Experiment:   {experiment_name}")
+      print(f"Model:        {model_type}")
+      print(f"Modality:     {modality}")
+      print(f"Fusion Stage: {fusion_stage}")
+      print(f"Fusion Type:  {fusion_stage}")
+      print(f"Dataset:      {dataset_name}")
       print("-" * 80)
 
       set_seed(seed)
@@ -107,7 +109,8 @@ def run_config(config, device):
       components = create_experiment_components(
         model_type=model_type,
         modality=modality,
-        fusion=fusion,
+        fusion_stage=fusion_stage,
+        fusion_type=fusion_type,
         num_classes=NUM_CLASSES,
         device=device
       )

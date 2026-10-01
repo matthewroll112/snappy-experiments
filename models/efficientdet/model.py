@@ -6,6 +6,8 @@ from effdet import create_model
 from .backbones import MidFusionBackbone, LateFusionBackbone, CrossModalBackbone
 from .backbones.utils import convert_to_four_channel
 
+from src.types import FusionStage
+
 
 MODEL_NAME = "tf_efficientdet_d0"
 IMAGE_SIZE = (640, 640)
@@ -37,23 +39,23 @@ class RGBEfficientDetDetector(nn.Module):
 class RGBDEfficientDetDetector(nn.Module):
   """RGB-D EfficientDet-D0 detector with configurable fusion."""
 
-  def __init__(self, num_classes, fusion_type):
+  def __init__(self, num_classes, fusion_stage: FusionStage):
     super().__init__()
 
     self.model = load_pretrained_model(num_classes)
-    self.fusion_type = fusion_type
+    self.fusion_type = fusion_stage
 
-    if fusion_type == "early":
+    if fusion_stage == "early":
       convert_to_four_channel(self.model.backbone)
       self.backbone = None
-    elif fusion_type == "mid":
+    elif fusion_stage == "mid":
       self.backbone = MidFusionBackbone(self.model.backbone)
-    elif fusion_type == "late":
+    elif fusion_stage == "late":
       self.backbone = LateFusionBackbone(self.model.backbone)
-    elif fusion_type == "cafim_gcffm":
+    elif fusion_stage == "cafim_gcffm":
       self.backbone = CrossModalBackbone(self.model.backbone)
     else:
-      raise ValueError(f"Unknown fusion type: {fusion_type}")
+      raise ValueError(f"Unknown fusion type: {fusion_stage}")
 
   def forward(self, rgb, depth):
     if self.fusion_type == "early":

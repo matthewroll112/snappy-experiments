@@ -8,8 +8,8 @@ from .utils import create_depth_stem
 from src.types import FusionType
 
 
-class LateFusionBackbone(nn.Module):
-  """RGB-D YOLO11l backbone with convolutional late fusion at P3, P4 and P5."""
+class LatePartialFusionBackbone(nn.Module):
+  """RGB-D YOLO11l backbone with convolutional late fusion at P4 and P5."""
 
   def __init__(self, pretrained_model: nn.Module, fusion_type: FusionType):
     super().__init__()
@@ -42,8 +42,7 @@ class LateFusionBackbone(nn.Module):
     self.depth_sppf = copy.deepcopy(layers[9])
     self.depth_c2psa = copy.deepcopy(layers[10])
 
-    # Late fusion
-    self.fusion_p3 = create_fusion(fusion_type, 256)
+    # Late fusion at P4 and P5 only
     self.fusion_p4 = create_fusion(fusion_type, 512)
     self.fusion_p5 = create_fusion(fusion_type, 512)
 
@@ -80,8 +79,8 @@ class LateFusionBackbone(nn.Module):
     depth = self.depth_sppf(depth)
     depth_p5 = self.depth_c2psa(depth)
 
-    # Fuse P3, P4 and P5
-    p3 = self.fusion_p3(rgb_p3, depth_p3)
+    # Keep P3 RGB-only, fuse RGB-D at P4 and P5
+    p3 = rgb_p3
     p4 = self.fusion_p4(rgb_p4, depth_p4)
     p5 = self.fusion_p5(rgb_p5, depth_p5)
 

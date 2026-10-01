@@ -2,66 +2,171 @@ model: rtdetrv2
 
 training:
   epochs: 100
-  batch_size: 16
+  batch_size: 4
   num_workers: 4
-  learning_rate: 0.0001
-  weight_decay: 0.0
+  learning_rate: 1.0e-05
+  min_learning_rate: 1.0e-07
+  weight_decay: 0.0001
   seed: 13
 
 experiments:
-  - name: rgb
-    modality: rgb
-    fusion: null
-    dataset: promptda
+- name: rgb
+  dataset: promptda
+  modality: rgb
 
-  - name: early_promptda
-    modality: rgbd
-    fusion: early
-    dataset: promptda
-  - name: early_da2
-    modality: rgbd
-    fusion: early
-    dataset: da2
-  - name: early_lingbot
-    modality: rgbd
-    fusion: early
-    dataset: lingbot
+- name: early_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: early
+- name: early_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: early
+- name: early_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: early
 
-  - name: mid_promptda
-    modality: rgbd
-    fusion: mid
-    dataset: promptda
-  - name: mid_da2
-    modality: rgbd
-    fusion: mid
-    dataset: da2
-  - name: mid_lingbot
-    modality: rgbd
-    fusion: mid
-    dataset: lingbot
+- name: mid_conv_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: conv
+- name: mid_conv_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: conv
+- name: mid_conv_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: conv
 
-  - name: late_promptda
-    modality: rgbd
-    fusion: late
-    dataset: promptda
-  - name: late_da2
-    modality: rgbd
-    fusion: late
-    dataset: da2
-  - name: late_lingbot
-    modality: rgbd
-    fusion: late
-    dataset: lingbot
+- name: mid_add_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: add
+- name: mid_add_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: add
+- name: mid_add_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: add
 
-  - name: cafim_gcffm_promptda
-    modality: rgbd
-    fusion: cafim_gcffm
-    dataset: promptda
-  - name: cafim_gcffm_da2
-    modality: rgbd
-    fusion: cafim_gcffm
-    dataset: da2
-  - name: cafim_gcffm_lingbot
-    modality: rgbd
-    fusion: cafim_gcffm
-    dataset: lingbot
+- name: mid_gated_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: gated
+- name: mid_gated_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: gated
+- name: mid_gated_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: gated
+
+- name: mid_mlp_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: mlp
+- name: mid_mlp_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: mlp
+- name: mid_mlp_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: mid
+  fusion_type: mlp
+
+- name: late_conv_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: conv
+- name: late_conv_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: conv
+- name: late_conv_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: conv
+
+- name: late_add_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: add
+- name: late_add_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: add
+- name: late_add_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: add
+
+- name: late_gated_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: gated
+- name: late_gated_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: gated
+- name: late_gated_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: gated
+
+- name: late_mlp_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: mlp
+- name: late_mlp_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: mlp
+- name: late_mlp_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: mlp
+  
+- name: late_cafim_gcffm_promptda
+  dataset: promptda
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: cafim_gcffm
+- name: late_cafim_gcffm_da2
+  dataset: da2
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: cafim_gcffm
+- name: late_cafim_gcffm_lingbot
+  dataset: lingbot
+  modality: rgbd
+  fusion_stage: late
+  fusion_type: cafim_gcffm

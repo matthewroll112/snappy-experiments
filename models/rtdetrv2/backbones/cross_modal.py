@@ -12,7 +12,7 @@ from .utils import create_depth_embedder
 class CrossModalBackbone(nn.Module):
   """Two-stream RGB-D ResNet50 backbone using CAFIM and GCFFM."""
 
-  def __init__(self, pretrained_backbone):
+  def __init__(self, pretrained_backbone: nn.Module):
     super().__init__()
 
     self.rgb_embedder = copy.deepcopy(pretrained_backbone.embedder)

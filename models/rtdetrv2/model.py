@@ -4,8 +4,10 @@ import torch.nn as nn
 from transformers import RTDetrV2ForObjectDetection
 from transformers.utils import logging
 
-from .backbones import CrossModalBackbone, LateFusionBackbone, MidFusionBackbone
+from .backbones import CrossModalBackbone, LateFusionBackbone, MidFusionBackbone, LatePartialFusionBackbone
 from .backbones.utils import convert_to_four_channel
+
+from src.types import FusionType, FusionStage
 
 
 logging.set_verbosity_error()
@@ -34,22 +36,24 @@ class RGBRTDETRDetector(nn.Module):
 class RGBDRTDETRDetector(nn.Module):
   """RGB-D RT-DETRv2 detector with configurable fusion."""
 
-  def __init__(self, num_classes: int, fusion_type: str):
+  def __init__(self, num_classes: int, fusion_stage: FusionStage, fusion_type: FusionType):
     super().__init__()
 
     self.model = load_pretrained_model(num_classes)
     pretrained_backbone = self.model.model.backbone.model
 
-    if fusion_type == "early":
+    if fusion_stage == "early":
       convert_to_four_channel(pretrained_backbone)
-    elif fusion_type == "mid":
-      self.model.model.backbone.model = MidFusionBackbone(pretrained_backbone)
-    elif fusion_type == "late":
-      self.model.model.backbone.model = LateFusionBackbone(pretrained_backbone)
-    elif fusion_type == "cafim_gcffm":
+    elif fusion_stage == "mid":
+      self.model.model.backbone.model = MidFusionBackbone(pretrained_backbone, fusion_type)
+    elif fusion_stage == "late":
+      self.model.model.backbone.model = LateFusionBackbone(pretrained_backbone, fusion_type)
+    elif fusion_stage == "late_partial":
+      self.model.model.backbone.model = LatePartialFusionBackbone(pretrained_backbone, fusion_type)
+    elif fusion_stage == "cafim_gcffm":
       self.model.model.backbone.model = CrossModalBackbone(pretrained_backbone)
     else:
-      raise ValueError(f"Unknown fusion type: {fusion_type}")
+      raise ValueError(f"Unknown fusion type: {fusion_stage}")
 
   def forward(self, rgb: torch.Tensor, depth: torch.Tensor, targets=None):
     x = torch.cat([rgb, depth], dim=1)

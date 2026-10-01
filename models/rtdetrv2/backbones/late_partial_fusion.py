@@ -10,7 +10,7 @@ from .utils import create_depth_embedder
 from src.types import FusionType
 
 
-class LateFusionBackbone(nn.Module):
+class LatePartialFusionBackbone(nn.Module):
   """RGB-D late-fusion ResNet50 backbone for RT-DETR."""
 
   def __init__(self, pretrained_backbone: nn.Module, fusion_type: FusionType):
@@ -29,7 +29,6 @@ class LateFusionBackbone(nn.Module):
     self.depth_c4 = copy.deepcopy(pretrained_backbone.encoder.stages[2])
     self.depth_c5 = copy.deepcopy(pretrained_backbone.encoder.stages[3])
 
-    self.fusion_c3 = create_fusion(fusion_type, 512)
     self.fusion_c4 = create_fusion(fusion_type, 1024)
     self.fusion_c5 = create_fusion(fusion_type, 2048)
 
@@ -52,7 +51,7 @@ class LateFusionBackbone(nn.Module):
     rgb_c5 = self.rgb_c5(rgb_c4)
     depth_c5 = self.depth_c5(depth_c4)
 
-    c3 = self.fusion_c3(rgb_c3, depth_c3)
+    c3 = rgb_c3
     c4 = self.fusion_c4(rgb_c4, depth_c4)
     c5 = self.fusion_c5(rgb_c5, depth_c5)
 

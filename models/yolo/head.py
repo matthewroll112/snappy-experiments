@@ -6,7 +6,7 @@ import torch.nn as nn
 class YOLOHead(nn.Module):
   """Pretrained YOLO11 neck and detection head."""
 
-  def __init__(self, pretrained_model):
+  def __init__(self, pretrained_model: nn.Module):
     super().__init__()
 
     layers = pretrained_model.model

@@ -8,7 +8,9 @@ from ultralytics.nn.tasks import DetectionModel
 from .head import YOLOHead
 
 from .backbones.utils import convert_to_four_channel
-from .backbones import MidFusionBackbone, LateFusionBackbone, CrossModalBackbone
+from .backbones import MidFusionBackbone, LateFusionBackbone, CrossModalBackbone, LatePartialFusionBackbone
+
+from src.types import FusionType, FusionStage
 
 
 MODEL_NAME = "yolo11l.pt"
@@ -49,34 +51,34 @@ class RGBYOLODetector(nn.Module):
 class RGBDYOLODetector(nn.Module):
   """RGB-D YOLOv8n detector with configurable fusion."""
 
-  def __init__(self, num_classes, fusion_type):
+  def __init__(self, num_classes, fusion_stage: FusionStage, fusion_type: FusionType):
     super().__init__()
 
     pretrained_model = load_pretrained_model(num_classes)
 
-    if fusion_type == "early":
+    if fusion_stage == "early":
       convert_to_four_channel(pretrained_model)
       self.yolo_model = pretrained_model
       self.backbone = None
       self.head = None
-
-    elif fusion_type == "mid":
+    elif fusion_stage == "mid":
       self.yolo_model = None
-      self.backbone = MidFusionBackbone(pretrained_model)
+      self.backbone = MidFusionBackbone(pretrained_model, fusion_type)
       self.head = YOLOHead(pretrained_model)
-
-    elif fusion_type == "late":
+    elif fusion_stage == "late":
       self.yolo_model = None
-      self.backbone = LateFusionBackbone(pretrained_model)
+      self.backbone = LateFusionBackbone(pretrained_model, fusion_type)
       self.head = YOLOHead(pretrained_model)
-
-    elif fusion_type == "cafim_gcffm":
+    elif fusion_stage == "cafim_gcffm":
       self.yolo_model = None
       self.backbone = CrossModalBackbone(pretrained_model)
       self.head = YOLOHead(pretrained_model)
-
+    elif fusion_stage == "late_partial":
+      self.yolo_model = None
+      self.backbone = LatePartialFusionBackbone(pretrained_model, fusion_type)
+      self.head = YOLOHead(pretrained_model)
     else:
-      raise ValueError(f"Unknown fusion type: {fusion_type}")
+      raise ValueError(f"Unknown fusion type: {fusion_stage}")
 
   @property
   def detect(self):

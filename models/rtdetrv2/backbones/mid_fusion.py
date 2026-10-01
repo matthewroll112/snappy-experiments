@@ -4,14 +4,15 @@ import torch
 import torch.nn as nn
 from transformers.modeling_outputs import BackboneOutput
 
-from src.fusion import ConvFusion
+from src.fusion import create_fusion
 
 from .utils import create_depth_embedder
+from src.types import FusionType
 
 class MidFusionBackbone(nn.Module):
   """RGB-D mid-fusion ResNet50 backbone for RT-DETR."""
 
-  def __init__(self, pretrained_backbone):
+  def __init__(self, pretrained_backbone, fusion_type: FusionType):
     super().__init__()
 
     self.rgb_embedder = copy.deepcopy(pretrained_backbone.embedder)
@@ -26,7 +27,7 @@ class MidFusionBackbone(nn.Module):
     self.c4 = copy.deepcopy(pretrained_backbone.encoder.stages[2])
     self.c5 = copy.deepcopy(pretrained_backbone.encoder.stages[3])
 
-    self.fusion = ConvFusion(512)
+    self.fusion = create_fusion(fusion_type, 512)
 
   def forward(self, pixel_values: torch.Tensor) -> BackboneOutput:
     rgb = pixel_values[:, :3]

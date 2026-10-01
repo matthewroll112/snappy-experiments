@@ -13,17 +13,27 @@ from models.yolo.engine import train_one_epoch as train_yolo
 from models.yolo.engine import validate_yolo
 
 
-def create_yolo_components(modality, fusion, num_classes, device):
+def create_yolo_components(
+  modality,
+  fusion_stage,
+  fusion_type,
+  num_classes,
+  device
+):
   """Create YOLO model, criterion and engine functions."""
 
   if modality == "rgb":
     model = RGBYOLODetector(num_classes).to(device)
 
   elif modality == "rgbd":
-    if fusion is None:
-      raise ValueError("RGB-D YOLO experiment requires a fusion type")
+    if fusion_stage is None:
+      raise ValueError("RGB-D YOLO experiment requires a fusion stage")
 
-    model = RGBDYOLODetector(num_classes, fusion).to(device)
+    model = RGBDYOLODetector(
+      num_classes=num_classes,
+      fusion_stage=fusion_stage,
+      fusion_type=fusion_type
+    ).to(device)
 
   else:
     raise ValueError(f"Unknown modality: {modality}")
@@ -38,17 +48,27 @@ def create_yolo_components(modality, fusion, num_classes, device):
   }
 
 
-def create_rtdetr_components(modality, fusion, num_classes, device):
+def create_rtdetr_components(
+  modality,
+  fusion_stage,
+  fusion_type,
+  num_classes,
+  device
+):
   """Create RT-DETR model and engine functions."""
 
   if modality == "rgb":
     model = RGBRTDETRDetector(num_classes).to(device)
 
   elif modality == "rgbd":
-    if fusion is None:
-      raise ValueError("RGB-D RT-DETR experiment requires a fusion type")
+    if fusion_stage is None:
+      raise ValueError("RGB-D RT-DETR experiment requires a fusion stage")
 
-    model = RGBDRTDETRDetector(num_classes, fusion).to(device)
+    model = RGBDRTDETRDetector(
+      num_classes=num_classes,
+      fusion_stage=fusion_stage,
+      fusion_type=fusion_type
+    ).to(device)
 
   else:
     raise ValueError(f"Unknown modality: {modality}")
@@ -61,17 +81,25 @@ def create_rtdetr_components(modality, fusion, num_classes, device):
   }
 
 
-def create_efficientdet_components(modality, fusion, num_classes, device):
+def create_efficientdet_components(
+  modality,
+  fusion_stage,
+  num_classes,
+  device
+):
   """Create EfficientDet model, criterion and engine functions."""
 
   if modality == "rgb":
     model = RGBEfficientDetDetector(num_classes).to(device)
 
   elif modality == "rgbd":
-    if fusion is None:
-      raise ValueError("RGB-D EfficientDet experiment requires a fusion type")
+    if fusion_stage is None:
+      raise ValueError("RGB-D EfficientDet experiment requires a fusion stage")
 
-    model = RGBDEfficientDetDetector(num_classes, fusion).to(device)
+    model = RGBDEfficientDetDetector(
+      num_classes=num_classes,
+      fusion_stage=fusion_stage,
+    ).to(device)
 
   else:
     raise ValueError(f"Unknown modality: {modality}")
@@ -86,16 +114,40 @@ def create_efficientdet_components(modality, fusion, num_classes, device):
   }
 
 
-def create_experiment_components(model_type, modality, fusion, num_classes, device):
+def create_experiment_components(
+  model_type,
+  modality,
+  fusion_stage,
+  fusion_type,
+  num_classes,
+  device
+):
   """Create model-specific components for an experiment."""
 
   if model_type == "yolo":
-    return create_yolo_components(modality, fusion, num_classes, device)
+    return create_yolo_components(
+      modality,
+      fusion_stage,
+      fusion_type,
+      num_classes,
+      device
+    )
 
   if model_type == "rtdetrv2":
-    return create_rtdetr_components(modality, fusion, num_classes, device)
+    return create_rtdetr_components(
+      modality,
+      fusion_stage,
+      fusion_type,
+      num_classes,
+      device
+    )
 
   if model_type == "efficientdet":
-    return create_efficientdet_components(modality, fusion, num_classes, device)
+    return create_efficientdet_components(
+      modality,
+      fusion_stage,
+      num_classes,
+      device
+    )
 
   raise ValueError(f"Unknown model type: {model_type}")
