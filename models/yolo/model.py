@@ -67,11 +67,10 @@ class RGBDYOLODetector(nn.Module):
       self.head = YOLOHead(pretrained_model)
     elif fusion_stage == "late":
       self.yolo_model = None
-      self.backbone = LateFusionBackbone(pretrained_model, fusion_type)
-      self.head = YOLOHead(pretrained_model)
-    elif fusion_stage == "cafim_gcffm":
-      self.yolo_model = None
-      self.backbone = CrossModalBackbone(pretrained_model)
+      if fusion_type == "cafim_gcffm":
+        self.backbone = CrossModalBackbone(pretrained_model)
+      else:
+        self.backbone = LateFusionBackbone(pretrained_model, fusion_type)
       self.head = YOLOHead(pretrained_model)
     elif fusion_stage == "late_partial":
       self.yolo_model = None

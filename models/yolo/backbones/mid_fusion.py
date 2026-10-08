@@ -31,7 +31,7 @@ class MidFusionBackbone(nn.Module):
     self.depth_c3k2_2 = copy.deepcopy(layers[4])
 
     # P3 fusion
-    self.fusion = create_fusion(fusion_type, 256)
+    self.fusion = create_fusion(fusion_type, 512)
 
     # Shared backbone
     self.conv4 = copy.deepcopy(layers[5])

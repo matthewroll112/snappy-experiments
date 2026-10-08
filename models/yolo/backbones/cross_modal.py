@@ -42,8 +42,8 @@ class CrossModalBackbone(nn.Module):
     self.depth_c2psa = copy.deepcopy(layers[10])
 
     # P3 cross-modal interaction
-    self.cafim_p3 = CAFIM(256)
-    self.gcffm_p3 = GCFFM(256)
+    self.cafim_p3 = CAFIM(512)
+    self.gcffm_p3 = GCFFM(512)
 
     # P4 cross-modal interaction
     self.cafim_p4 = CAFIM(512)

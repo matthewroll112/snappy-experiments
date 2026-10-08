@@ -43,7 +43,7 @@ class LateFusionBackbone(nn.Module):
     self.depth_c2psa = copy.deepcopy(layers[10])
 
     # Late fusion
-    self.fusion_p3 = create_fusion(fusion_type, 256)
+    self.fusion_p3 = create_fusion(fusion_type, 512)
     self.fusion_p4 = create_fusion(fusion_type, 512)
     self.fusion_p5 = create_fusion(fusion_type, 512)
 

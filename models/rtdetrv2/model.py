@@ -47,11 +47,12 @@ class RGBDRTDETRDetector(nn.Module):
     elif fusion_stage == "mid":
       self.model.model.backbone.model = MidFusionBackbone(pretrained_backbone, fusion_type)
     elif fusion_stage == "late":
-      self.model.model.backbone.model = LateFusionBackbone(pretrained_backbone, fusion_type)
+      if fusion_type == "cafim_gcffm":
+        self.model.model.backbone.model = CrossModalBackbone(pretrained_backbone)
+      else:
+        self.model.model.backbone.model = LateFusionBackbone(pretrained_backbone, fusion_type)
     elif fusion_stage == "late_partial":
       self.model.model.backbone.model = LatePartialFusionBackbone(pretrained_backbone, fusion_type)
-    elif fusion_stage == "cafim_gcffm":
-      self.model.model.backbone.model = CrossModalBackbone(pretrained_backbone)
     else:
       raise ValueError(f"Unknown fusion type: {fusion_stage}")
 
