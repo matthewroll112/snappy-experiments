@@ -94,7 +94,7 @@ def run_config(config, device):
       print(f"Model:        {model_type}")
       print(f"Modality:     {modality}")
       print(f"Fusion Stage: {fusion_stage}")
-      print(f"Fusion Type:  {fusion_stage}")
+      print(f"Fusion Type:  {fusion_type}")
       print(f"Dataset:      {dataset_name}")
       print("-" * 80)
 

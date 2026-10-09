@@ -4,12 +4,16 @@ from tqdm import tqdm
 
 from src.evaluation import DetectionEvaluator, normalized_cxcywh_to_xyxy
 
+from transformers import RTDetrImageProcessor
+
 
 @torch.inference_mode()
 def validate_rtdetr(model, loader, device, class_names, epoch=None):
   model.eval()
 
   evaluator = DetectionEvaluator(device, class_names)
+
+  processor = RTDetrImageProcessor.from_pretrained("PekingU/rtdetr_v2_r50vd")
 
   progress_bar = tqdm(
     loader,
@@ -35,17 +39,9 @@ def validate_rtdetr(model, loader, device, class_names, epoch=None):
 
     outputs = model(rgb, depth)
 
-    probabilities = outputs.logits.sigmoid()
-    predictions = []
+    target_sizes = torch.tensor([[image_height, image_width]] * rgb.shape[0], device=device)
 
-    for scores, boxes in zip(probabilities, outputs.pred_boxes):
-      confidence, labels = scores.max(dim=-1)
-
-      predictions.append({
-        "boxes": normalized_cxcywh_to_xyxy(boxes, image_height, image_width),
-        "scores": confidence,
-        "labels": labels
-      })
+    predictions = processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.001)
 
     evaluator.update(predictions, metric_targets)
 
