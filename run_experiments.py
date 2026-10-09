@@ -4,6 +4,7 @@ import argparse
 import traceback
 
 import torch
+import gc
 import yaml
 
 from experiments.common import create_dataloaders, create_optimizer, run_training, set_seed, create_scheduler
@@ -76,6 +77,10 @@ def run_config(config, device):
     scheduler = None
     train_loader = None
     val_loader = None
+
+    components = None
+    train_fn = None
+    val_fn = None
 
     try:
       modality = experiment["modality"]
@@ -153,12 +158,18 @@ def run_config(config, device):
       log_failure(model_type, experiment_name, error)
 
     finally:
-      del model
-      del criterion
-      del optimizer
-      del scheduler
-      del train_loader
-      del val_loader
+      model = None
+      criterion = None
+      optimizer = None
+      scheduler = None
+      train_loader = None
+      val_loader = None
+
+      components = None
+      train_fn = None
+      val_fn = None
+
+      gc.collect()
 
       if torch.cuda.is_available():
         torch.cuda.empty_cache()
