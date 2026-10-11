@@ -2,9 +2,10 @@ from pathlib import Path
 
 import argparse
 import traceback
+import gc
+from itertools import product
 
 import torch
-import gc
 import yaml
 
 from experiments.common import create_dataloaders, create_optimizer, run_training, set_seed, create_scheduler
@@ -27,6 +28,12 @@ CLASS_NAMES = {
   1: "EMA"
 }
 
+def as_list(value):
+  """Convert a scalar config value to a a list"""
+
+  if isinstance(value, list):
+    return value
+  return [value]
 
 def load_config(path):
   """Load an experiment configuration file."""
@@ -56,10 +63,11 @@ def run_config(config, device):
   epochs = training["epochs"]
   batch_size = training["batch_size"]
   num_workers = training["num_workers"]
-  learning_rate = training["learning_rate"]
-  min_learning_rate = training["min_learning_rate"]
-  weight_decay = training.get("weight_decay", 0.0)
   seed = training["seed"]
+
+  learning_rates = as_list(training["learning_rate"])
+  min_learning_rates = as_list(training["min_learning_rate"])
+  weight_decays = as_list(training.get("weight_decay", 0.0))
 
   output_dir = RESULTS_DIR / model_type
 
@@ -69,95 +77,11 @@ def run_config(config, device):
   print("=" * 80)
 
   for experiment in config["experiments"]:
-    experiment_name = experiment["name"]
+    base_experiment_name = experiment["name"]
 
-    model = None
-    criterion = None
-    optimizer = None
-    scheduler = None
-    train_loader = None
-    val_loader = None
+    for learning_rate, min_learning_rate, weight_decay in product(learning_rates, min_learning_rates, weight_decays):
+      experiment_name = f"{base_experiment_name}_lr{learning_rate:.0e}_minlr{min_learning_rate:.0e}_wd{weight_decay:.0e}"
 
-    components = None
-    train_fn = None
-    val_fn = None
-
-    try:
-      modality = experiment["modality"]
-      fusion_stage = experiment.get("fusion_stage")
-      fusion_type = experiment.get("fusion_type")
-      dataset_name = experiment["dataset"]
-
-      if dataset_name not in DATASETS:
-        raise ValueError(f"Unknown dataset: {dataset_name}")
-
-      data_dir = DATASETS[dataset_name]
-
-      print()
-      print("-" * 80)
-      print(f"Experiment:   {experiment_name}")
-      print(f"Model:        {model_type}")
-      print(f"Modality:     {modality}")
-      print(f"Fusion Stage: {fusion_stage}")
-      print(f"Fusion Type:  {fusion_type}")
-      print(f"Dataset:      {dataset_name}")
-      print("-" * 80)
-
-      set_seed(seed)
-
-      train_loader, val_loader = create_dataloaders(
-        data_dir,
-        batch_size,
-        num_workers
-      )
-
-      components = create_experiment_components(
-        model_type=model_type,
-        modality=modality,
-        fusion_stage=fusion_stage,
-        fusion_type=fusion_type,
-        num_classes=NUM_CLASSES,
-        device=device
-      )
-
-      model = components["model"]
-      criterion = components["criterion"]
-      train_fn = components["train_fn"]
-      val_fn = components["val_fn"]
-
-      optimizer = create_optimizer(model, learning_rate, weight_decay)
-      scheduler = create_scheduler(optimizer, epochs, min_learning_rate)
-
-      run_training(
-        model=model,
-        criterion=criterion,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        train_fn=train_fn,
-        val_fn=val_fn,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        device=device,
-        class_names=CLASS_NAMES,
-        epochs=epochs,
-        output_dir=output_dir,
-        experiment_name=experiment_name
-      )
-
-      print()
-      print(f"COMPLETED: {model_type} / {experiment_name}")
-
-    except Exception as error:
-      print()
-      print("!" * 80)
-      print(f"FAILED: {model_type} / {experiment_name}")
-      print(f"{type(error).__name__}: {error}")
-      print("Continuing to next experiment...")
-      print("!" * 80)
-
-      log_failure(model_type, experiment_name, error)
-
-    finally:
       model = None
       criterion = None
       optimizer = None
@@ -169,10 +93,101 @@ def run_config(config, device):
       train_fn = None
       val_fn = None
 
-      gc.collect()
+      try:
+        modality = experiment["modality"]
+        fusion_stage = experiment.get("fusion_stage")
+        fusion_type = experiment.get("fusion_type")
+        dataset_name = experiment["dataset"]
 
-      if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+        if dataset_name not in DATASETS:
+          raise ValueError(f"Unknown dataset: {dataset_name}")
+
+        data_dir = DATASETS[dataset_name]
+
+        print()
+        print("-" * 80)
+        print(f"Experiment:   {experiment_name}")
+        print(f"Model:        {model_type}")
+        print(f"Modality:     {modality}")
+        print(f"Fusion Stage: {fusion_stage}")
+        print(f"Fusion Type:  {fusion_type}")
+        print(f"Dataset:      {dataset_name}")
+        print(f"LR:           {learning_rate:.1e}")
+        print(f"Min LR:       {min_learning_rate:.1e}")
+        print(f"Weight Decay: {weight_decay:.1e}")
+        print(f"Batch Size:   {batch_size}")
+        print("-" * 80)
+
+        set_seed(seed)
+
+        train_loader, val_loader = create_dataloaders(
+          data_dir,
+          batch_size,
+          num_workers
+        )
+
+        components = create_experiment_components(
+          model_type=model_type,
+          modality=modality,
+          fusion_stage=fusion_stage,
+          fusion_type=fusion_type,
+          num_classes=NUM_CLASSES,
+          device=device
+        )
+
+        model = components["model"]
+        criterion = components["criterion"]
+        train_fn = components["train_fn"]
+        val_fn = components["val_fn"]
+
+        optimizer = create_optimizer(model, learning_rate, weight_decay)
+        scheduler = create_scheduler(optimizer, epochs, min_learning_rate)
+
+        run_training(
+          model=model,
+          criterion=criterion,
+          train_loader=train_loader,
+          val_loader=val_loader,
+          train_fn=train_fn,
+          val_fn=val_fn,
+          optimizer=optimizer,
+          scheduler=scheduler,
+          device=device,
+          class_names=CLASS_NAMES,
+          epochs=epochs,
+          output_dir=output_dir,
+          experiment_name=experiment_name
+        )
+
+        print()
+        print(f"COMPLETED: {model_type} / {experiment_name}")
+
+      except Exception as error:
+        print()
+        print("!" * 80)
+        print(f"FAILED: {model_type} / {experiment_name}")
+        print(f"{type(error).__name__}: {error}")
+        print("Continuing to next experiment...")
+        print("!" * 80)
+
+        log_failure(model_type, experiment_name, error)
+
+      finally:
+        model = None
+        criterion = None
+        optimizer = None
+        scheduler = None
+        train_loader = None
+        val_loader = None
+
+        components = None
+        train_fn = None
+        val_fn = None
+
+        gc.collect()
+
+        if torch.cuda.is_available():
+          torch.cuda.empty_cache()
 
 
 def main():
