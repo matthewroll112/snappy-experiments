@@ -5,7 +5,7 @@ from torchmetrics.detection.mean_ap import MeanAveragePrecision
 class DetectionEvaluator:
   """Calculate common object detection metrics using xyxy boxes."""
 
-  def __init__(self, device, class_names, confidence_threshold=0.25, iou_threshold=0.5):
+  def __init__(self, device, class_names, confidence_threshold=0.05, iou_threshold=0.5):
     self.class_names = class_names
     self.confidence_threshold = confidence_threshold
     self.iou_threshold = iou_threshold
