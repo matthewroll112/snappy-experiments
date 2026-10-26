@@ -5,7 +5,9 @@ import csv
 
 import torch
 import yaml
+from torch.utils.data import DataLoader, Subset
 
+from data.dataset import collate_fn
 from experiments.common import create_dataloaders, set_seed
 from experiments.registry import create_experiment_components
 
@@ -15,6 +17,11 @@ DATASETS = {
   "promptda": Path("data/snappy-v2-promptda"),
   "da2": Path("data/snappy-v2-da2"),
   "lingbot": Path("data/snappy-v2-lingbot")
+}
+
+SUBSET_FILES = {
+  "water_occlusion": Path("data/subsets/water_occlusion.txt"),
+  "overlap": Path("data/subsets/overlap.txt")
 }
 
 RESULTS_DIR = Path("results/final")
@@ -46,14 +53,57 @@ def load_checkpoint(model, checkpoint_path, device):
   return model
 
 
+def load_subset_names(path):
+  """Load image filenames for an evaluation subset."""
+
+  if not path.exists():
+    raise FileNotFoundError(f"Subset file not found: {path}")
+
+  with path.open("r") as file:
+    return {line.strip() for line in file if line.strip()}
+
+
+def create_subset_loader(loader, subset_name):
+  """Create a validation loader containing only selected images."""
+
+  if subset_name == "all":
+    return loader
+
+  if subset_name not in SUBSET_FILES:
+    raise ValueError(f"Unknown subset: {subset_name}")
+
+  subset_names = load_subset_names(SUBSET_FILES[subset_name])
+
+  indices = [
+    index
+    for index, image_path in enumerate(loader.dataset.image_paths)
+    if image_path.name in subset_names
+  ]
+
+  if len(indices) == 0:
+    raise RuntimeError(f"No validation images matched subset: {subset_name}")
+
+  subset = Subset(loader.dataset, indices)
+
+  return DataLoader(
+    subset,
+    batch_size=loader.batch_size,
+    shuffle=False,
+    num_workers=loader.num_workers,
+    pin_memory=True,
+    collate_fn=collate_fn
+  )
+
+
 def save_results(model_type, results):
-  """Save final evaluation results."""
+  """Append final evaluation results to CSV."""
 
   RESULTS_DIR.mkdir(parents=True, exist_ok=True)
   output_path = RESULTS_DIR / f"{model_type}.csv"
 
   fieldnames = [
     "name",
+    "subset",
     "dataset",
     "modality",
     "fusion_stage",
@@ -63,7 +113,8 @@ def save_results(model_type, results):
     "map_50",
     "precision",
     "recall",
-    "inference_time_ms"
+    "inference_time_ms",
+    "num_images"
   ]
 
   file_exists = output_path.exists()
@@ -87,6 +138,7 @@ def evaluate_config(config, device):
 
   batch_size = validation.get("batch_size", 1)
   num_workers = validation.get("num_workers", 4)
+  subsets = validation.get("subsets", ["all"])
 
   print()
   print("=" * 80)
@@ -141,37 +193,47 @@ def evaluate_config(config, device):
 
     model = load_checkpoint(model, checkpoint_path, device)
     model.to(device)
+    model.eval()
 
-    metrics = val_fn(
-      model=model,
-      loader=val_loader,
-      device=device,
-      class_names=CLASS_NAMES,
-      measure_inference=True
-    )
+    for subset_name in subsets:
+      subset_loader = create_subset_loader(val_loader, subset_name)
 
-    results = {
-      "name": name,
-      "dataset": dataset_name,
-      "modality": modality,
-      "fusion_stage": fusion_stage,
-      "fusion_type": fusion_type,
-      "seed": seed,
-      "map": metrics["map"],
-      "map_50": metrics["map_50"],
-      "precision": metrics["precision"],
-      "recall": metrics["recall"],
-      "inference_time_ms": metrics["inference_time_ms"]
-    }
+      print()
+      print(f"Subset:       {subset_name}")
+      print(f"Images:       {len(subset_loader.dataset)}")
 
-    print(f"mAP50-95:       {metrics['map']:.4f}")
-    print(f"mAP50:          {metrics['map_50']:.4f}")
-    print(f"Precision:      {metrics['precision']:.4f}")
-    print(f"Recall:         {metrics['recall']:.4f}")
-    print(f"Inference time: {metrics['inference_time_ms']:.2f} ms/image")
+      metrics = val_fn(
+        model=model,
+        loader=subset_loader,
+        device=device,
+        class_names=CLASS_NAMES,
+        measure_inference=True
+      )
 
-    output_path = save_results(model_type, results)
-    print(f"Saved to:       {output_path}")
+      results = {
+        "name": name,
+        "subset": subset_name,
+        "dataset": dataset_name,
+        "modality": modality,
+        "fusion_stage": fusion_stage,
+        "fusion_type": fusion_type,
+        "seed": seed,
+        "map": metrics["map"],
+        "map_50": metrics["map_50"],
+        "precision": metrics["precision"],
+        "recall": metrics["recall"],
+        "inference_time_ms": metrics["inference_time_ms"],
+        "num_images": len(subset_loader.dataset)
+      }
+
+      print(f"mAP50-95:       {metrics['map']:.4f}")
+      print(f"mAP50:          {metrics['map_50']:.4f}")
+      print(f"Precision:      {metrics['precision']:.4f}")
+      print(f"Recall:         {metrics['recall']:.4f}")
+      print(f"Inference time: {metrics['inference_time_ms']:.2f} ms/image")
+
+      output_path = save_results(model_type, results)
+      print(f"Saved to:       {output_path}")
 
 
 def main():

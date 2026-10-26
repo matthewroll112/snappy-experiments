@@ -3,6 +3,10 @@ model: rtdetrv2
 validation:
   batch_size: 1
   num_workers: 4
+  subsets:
+    - all
+    - water_occlusion
+    - overlap
 
 experiments:
   - name: rgb_seed13
