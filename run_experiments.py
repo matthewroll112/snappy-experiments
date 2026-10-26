@@ -28,12 +28,15 @@ CLASS_NAMES = {
   1: "EMA"
 }
 
+
 def as_list(value):
-  """Convert a scalar config value to a a list"""
+  """Convert a scalar config value to a list."""
 
   if isinstance(value, list):
     return value
+
   return [value]
+
 
 def load_config(path):
   """Load an experiment configuration file."""
@@ -63,11 +66,11 @@ def run_config(config, device):
   epochs = training["epochs"]
   batch_size = training["batch_size"]
   num_workers = training["num_workers"]
-  seed = training["seed"]
   min_lr_ratio = training.get("min_learning_rate_ratio", 0.01)
 
   learning_rates = as_list(training["learning_rate"])
   weight_decays = as_list(training.get("weight_decay", 0.0))
+  seeds = as_list(training["seed"])
 
   output_dir = RESULTS_DIR / model_type
 
@@ -79,10 +82,20 @@ def run_config(config, device):
   for experiment in config["experiments"]:
     base_experiment_name = experiment["name"]
 
-    for learning_rate, weight_decay in product(learning_rates, weight_decays):
+    for learning_rate, weight_decay, seed in product(
+      learning_rates,
+      weight_decays,
+      seeds
+    ):
       min_learning_rate = learning_rate * min_lr_ratio
 
-      experiment_name = f"{base_experiment_name}_lr{learning_rate:.0e}_minlr{min_learning_rate:.0e}_wd{weight_decay:.0e}"
+      experiment_name = (
+        f"{base_experiment_name}"
+        f"_lr{learning_rate:.0e}"
+        f"_minlr{min_learning_rate:.0e}"
+        f"_wd{weight_decay:.0e}"
+        f"_seed{seed}"
+      )
 
       model = None
       criterion = None
@@ -117,6 +130,7 @@ def run_config(config, device):
         print(f"LR:           {learning_rate:.1e}")
         print(f"Min LR:       {min_learning_rate:.1e}")
         print(f"Weight Decay: {weight_decay:.1e}")
+        print(f"Seed:         {seed}")
         print(f"Batch Size:   {batch_size}")
         print("-" * 80)
 
@@ -142,8 +156,17 @@ def run_config(config, device):
         train_fn = components["train_fn"]
         val_fn = components["val_fn"]
 
-        optimizer = create_optimizer(model, learning_rate, weight_decay)
-        scheduler = create_scheduler(optimizer, epochs, min_learning_rate)
+        optimizer = create_optimizer(
+          model,
+          learning_rate,
+          weight_decay
+        )
+
+        scheduler = create_scheduler(
+          optimizer,
+          epochs,
+          min_learning_rate
+        )
 
         run_training(
           model=model,
@@ -193,11 +216,21 @@ def run_config(config, device):
 
 
 def main():
-  parser = argparse.ArgumentParser(description="Run snappy object detection experiments")
-  parser.add_argument("configs", nargs="+", help="One or more experiment YAML files")
+  parser = argparse.ArgumentParser(
+    description="Run snappy object detection experiments"
+  )
+
+  parser.add_argument(
+    "configs",
+    nargs="+",
+    help="One or more experiment YAML files"
+  )
+
   args = parser.parse_args()
 
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+  )
 
   print(f"Device: {device}")
 
@@ -206,7 +239,9 @@ def main():
 
     try:
       if not config_path.exists():
-        raise FileNotFoundError(f"Config not found: {config_path}")
+        raise FileNotFoundError(
+          f"Config not found: {config_path}"
+        )
 
       print()
       print("#" * 80)
@@ -214,7 +249,11 @@ def main():
       print("#" * 80)
 
       config = load_config(config_path)
-      run_config(config, device)
+
+      run_config(
+        config,
+        device
+      )
 
     except Exception as error:
       print()
@@ -224,7 +263,11 @@ def main():
       print("Continuing to next config...")
       print("!" * 80)
 
-      log_failure("config", str(config_path), error)
+      log_failure(
+        "config",
+        str(config_path),
+        error
+      )
 
 
 if __name__ == "__main__":
