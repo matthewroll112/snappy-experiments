@@ -12,6 +12,7 @@ dist/
 
 # Datasets
 data/*
+!data/subsets
 !data/README.md
 !data/.gitkeep
 
