@@ -1,13 +1,23 @@
+import time
+
 import torch
 from tqdm import tqdm
-
 from ultralytics.utils.ops import non_max_suppression
 
 from src.evaluation import DetectionEvaluator, normalized_cxcywh_to_xyxy
 
 
 @torch.inference_mode()
-def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold=0.001, iou_threshold=0.7):
+def validate_yolo(
+  model,
+  loader,
+  device,
+  class_names,
+  epoch=None,
+  conf_threshold=0.001,
+  iou_threshold=0.7,
+  measure_inference=False
+):
   model.eval()
 
   evaluator = DetectionEvaluator(device, class_names)
@@ -18,6 +28,9 @@ def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold
     leave=False,
     dynamic_ncols=True
   )
+
+  total_inference_time = 0.0
+  total_images = 0
 
   for rgb, depth, targets in progress_bar:
     rgb = rgb.to(device, non_blocking=True)
@@ -34,7 +47,18 @@ def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold
       for target in targets
     ]
 
+    if measure_inference and device.type == "cuda":
+      torch.cuda.synchronize()
+
+    start_time = time.perf_counter()
     outputs = model(rgb, depth)
+
+    if measure_inference and device.type == "cuda":
+      torch.cuda.synchronize()
+
+    if measure_inference:
+      total_inference_time += time.perf_counter() - start_time
+      total_images += rgb.shape[0]
 
     predictions = non_max_suppression(
       outputs,
@@ -52,7 +76,6 @@ def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold
           "scores": torch.empty(0, dtype=torch.float32, device=device),
           "labels": torch.empty(0, dtype=torch.int64, device=device)
         })
-
         continue
 
       metric_predictions.append({
@@ -63,4 +86,9 @@ def validate_yolo(model, loader, device, class_names, epoch=None, conf_threshold
 
     evaluator.update(metric_predictions, metric_targets)
 
-  return evaluator.compute()
+  results = evaluator.compute()
+
+  if measure_inference:
+    results["inference_time_ms"] = total_inference_time / total_images * 1000
+
+  return results

@@ -1,0 +1,69 @@
+model: rtdetrv2
+
+validation:
+  batch_size: 1
+  num_workers: 4
+
+experiments:
+  - name: rgb_seed13
+    dataset: base
+    modality: rgb
+    seed: 13
+    checkpoint: results/rtdetrv2/rgb_lr5e-05_minlr5e-07_wd1e-04_best.pth
+
+  - name: rgb_seed42
+    dataset: base
+    modality: rgb
+    seed: 42
+    checkpoint: results/rtdetrv2/rgb_lr5e-05_minlr5e-07_wd1e-04_seed42_best.pth
+
+  - name: rgb_seed123
+    dataset: base
+    modality: rgb
+    seed: 123
+    checkpoint: results/rtdetrv2/rgb_lr5e-05_minlr5e-07_wd1e-04_seed123_best.pth
+
+  - name: early_da2_seed13
+    dataset: da2
+    modality: rgbd
+    fusion_stage: early
+    seed: 13
+    checkpoint: results/rtdetrv2/early_da2_lr5e-05_minlr5e-07_wd1e-04_best.pth
+
+  - name: early_da2_seed42
+    dataset: da2
+    modality: rgbd
+    fusion_stage: early
+    seed: 42
+    checkpoint: results/rtdetrv2/early_da2_lr5e-05_minlr5e-07_wd1e-04_seed42_best.pth
+
+  - name: early_da2_seed123
+    dataset: da2
+    modality: rgbd
+    fusion_stage: early
+    seed: 123
+    checkpoint: results/rtdetrv2/early_da2_lr5e-05_minlr5e-07_wd1e-04_seed123_best.pth
+
+  - name: late_partial_add_lingbot_seed13
+    dataset: lingbot
+    modality: rgbd
+    fusion_stage: late_partial
+    fusion_type: add
+    seed: 13
+    checkpoint: results/rtdetrv2/late_partial_add_lingbot_lr5e-05_minlr5e-07_wd5e-05_best.pth
+
+  - name: late_partial_add_lingbot_seed42
+    dataset: lingbot
+    modality: rgbd
+    fusion_stage: late_partial
+    fusion_type: add
+    seed: 42
+    checkpoint: results/rtdetrv2/late_partial_add_lingbot_lr5e-05_minlr5e-07_wd5e-05_seed42_best.pth
+
+  - name: late_partial_add_lingbot_seed123
+    dataset: lingbot
+    modality: rgbd
+    fusion_stage: late_partial
+    fusion_type: add
+    seed: 123
+    checkpoint: results/rtdetrv2/late_partial_add_lingbot_lr5e-05_minlr5e-07_wd5e-05_seed123_best.pth

@@ -1,18 +1,17 @@
-import torch
+import time
 
+import torch
 from tqdm import tqdm
+from transformers import RTDetrImageProcessor
 
 from src.evaluation import DetectionEvaluator, normalized_cxcywh_to_xyxy
 
-from transformers import RTDetrImageProcessor
-
 
 @torch.inference_mode()
-def validate_rtdetr(model, loader, device, class_names, epoch=None):
+def validate_rtdetr(model, loader, device, class_names, epoch=None, measure_inference=False):
   model.eval()
 
   evaluator = DetectionEvaluator(device, class_names)
-
   processor = RTDetrImageProcessor.from_pretrained("PekingU/rtdetr_v2_r50vd")
 
   progress_bar = tqdm(
@@ -21,6 +20,9 @@ def validate_rtdetr(model, loader, device, class_names, epoch=None):
     leave=False,
     dynamic_ncols=True
   )
+
+  total_inference_time = 0.0
+  total_images = 0
 
   for rgb, depth, targets in progress_bar:
     rgb = rgb.to(device, non_blocking=True)
@@ -37,12 +39,32 @@ def validate_rtdetr(model, loader, device, class_names, epoch=None):
       for target in targets
     ]
 
+    if measure_inference and device.type == "cuda":
+      torch.cuda.synchronize()
+
+    start_time = time.perf_counter()
     outputs = model(rgb, depth)
+
+    if measure_inference and device.type == "cuda":
+      torch.cuda.synchronize()
+
+    if measure_inference:
+      total_inference_time += time.perf_counter() - start_time
+      total_images += rgb.shape[0]
 
     target_sizes = torch.tensor([[image_height, image_width]] * rgb.shape[0], device=device)
 
-    predictions = processor.post_process_object_detection(outputs, target_sizes=target_sizes, threshold=0.001)
+    predictions = processor.post_process_object_detection(
+      outputs,
+      target_sizes=target_sizes,
+      threshold=0.001
+    )
 
     evaluator.update(predictions, metric_targets)
 
-  return evaluator.compute()
+  results = evaluator.compute()
+
+  if measure_inference:
+    results["inference_time_ms"] = total_inference_time / total_images * 1000
+
+  return results
