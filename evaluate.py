@@ -7,7 +7,7 @@ import torch
 import yaml
 from torch.utils.data import DataLoader, Subset
 
-from data.dataset import collate_fn
+from src.data.collate import collate_fn
 from experiments.common import create_dataloaders, set_seed
 from experiments.registry import create_experiment_components
 
