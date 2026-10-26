@@ -137,7 +137,7 @@ def evaluate_config(config, device):
     )
 
     model = components["model"]
-    val_fn = components["validate"]
+    val_fn = components["val_fn"]
 
     model = load_checkpoint(model, checkpoint_path, device)
     model.to(device)
