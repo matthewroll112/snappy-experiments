@@ -33,7 +33,8 @@ def create_dataloaders(data_dir, batch_size, num_workers, image_size=(640, 640))
     shuffle=True,
     num_workers=num_workers,
     pin_memory=True,
-    collate_fn=collate_fn
+    collate_fn=collate_fn,
+    persistent_workers=True
   )
 
   val_loader = DataLoader(
