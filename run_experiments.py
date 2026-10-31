@@ -64,10 +64,10 @@ def run_config(config, device):
   training = config["training"]
 
   epochs = training["epochs"]
-  batch_size = training["batch_size"]
   num_workers = training["num_workers"]
   min_lr_ratio = training.get("min_learning_rate_ratio", 0.01)
 
+  batch_sizes = as_list(training["batch_size"])
   learning_rates = as_list(training["learning_rate"])
   weight_decays = as_list(training.get("weight_decay", 0.0))
   seeds = as_list(training["seed"])
@@ -82,10 +82,11 @@ def run_config(config, device):
   for experiment in config["experiments"]:
     base_experiment_name = experiment["name"]
 
-    for learning_rate, weight_decay, seed in product(
+    for learning_rate, weight_decay, seed, batch_size in product(
       learning_rates,
       weight_decays,
-      seeds
+      seeds,
+      batch_sizes
     ):
       min_learning_rate = learning_rate * min_lr_ratio
 
