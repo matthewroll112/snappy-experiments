@@ -96,6 +96,7 @@ def run_config(config, device):
         f"_minlr{min_learning_rate:.0e}"
         f"_wd{weight_decay:.0e}"
         f"_seed{seed}"
+        f"_bs{batch_size}"
       )
 
       model = None
