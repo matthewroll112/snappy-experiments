@@ -5,7 +5,7 @@ import csv
 
 import torch
 import yaml
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Dataset, Subset
 
 from src.data.collate import collate_fn
 from experiments.common import create_dataloaders, set_seed
@@ -33,6 +33,61 @@ CLASS_NAMES = {
 }
 
 
+class DepthAblationDataset(Dataset):
+  """
+  Wrapper for inference-time depth ablation.
+
+  Modes:
+    normal:   original aligned depth
+    muted:    depth replaced with zeros
+    shuffled: depth taken from a different validation image
+  """
+
+  def __init__(self, dataset, mode="normal", seed=13):
+    self.dataset = dataset
+    self.mode = mode
+
+    if mode not in {"normal", "muted", "shuffled"}:
+      raise ValueError(f"Unknown depth mode: {mode}")
+
+    if mode == "shuffled":
+      self.depth_indices = self._create_derangement(len(dataset), seed)
+
+  def _create_derangement(self, n, seed):
+    if n < 2:
+      raise ValueError("Shuffled depth evaluation requires at least two images")
+
+    generator = torch.Generator().manual_seed(seed)
+    order = torch.randperm(n, generator=generator).tolist()
+
+    depth_indices = [None] * n
+
+    for i in range(n):
+      rgb_index = order[i]
+      depth_index = order[(i + 1) % n]
+      depth_indices[rgb_index] = depth_index
+
+    if any(index == depth_indices[index] for index in range(n)):
+      raise RuntimeError("Depth derangement contains an identity pairing")
+
+    return depth_indices
+
+  def __len__(self):
+    return len(self.dataset)
+
+  def __getitem__(self, index):
+    rgb, depth, target = self.dataset[index]
+
+    if self.mode == "muted":
+      depth = torch.zeros_like(depth)
+
+    elif self.mode == "shuffled":
+      shuffled_index = self.depth_indices[index]
+      _, depth, _ = self.dataset[shuffled_index]
+
+    return rgb, depth, target
+
+
 def load_config(path):
   """Load a validation configuration file."""
 
@@ -43,7 +98,11 @@ def load_config(path):
 def load_checkpoint(model, checkpoint_path, device):
   """Load trained model weights."""
 
-  checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+  checkpoint = torch.load(
+    checkpoint_path,
+    map_location=device,
+    weights_only=False
+  )
 
   if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
     checkpoint = checkpoint["model_state_dict"]
@@ -95,6 +154,28 @@ def create_subset_loader(loader, subset_name):
   )
 
 
+def create_depth_ablation_loader(loader, mode, seed):
+  """Create a validation loader with modified depth input."""
+
+  if mode == "normal":
+    return loader
+
+  dataset = DepthAblationDataset(
+    loader.dataset,
+    mode=mode,
+    seed=seed
+  )
+
+  return DataLoader(
+    dataset,
+    batch_size=loader.batch_size,
+    shuffle=False,
+    num_workers=loader.num_workers,
+    pin_memory=True,
+    collate_fn=collate_fn
+  )
+
+
 def save_results(model_type, results):
   """Append final evaluation results to CSV."""
 
@@ -104,6 +185,7 @@ def save_results(model_type, results):
   fieldnames = [
     "name",
     "subset",
+    "depth_mode",
     "dataset",
     "modality",
     "fusion_stage",
@@ -130,6 +212,61 @@ def save_results(model_type, results):
   return output_path
 
 
+def evaluate_model(
+  model,
+  val_fn,
+  loader,
+  device,
+  name,
+  subset_name,
+  depth_mode,
+  dataset_name,
+  modality,
+  fusion_stage,
+  fusion_type,
+  seed
+):
+  """Run one evaluation condition and save the results."""
+
+  print()
+  print(f"Subset:       {subset_name}")
+  print(f"Depth mode:   {depth_mode}")
+  print(f"Images:       {len(loader.dataset)}")
+
+  metrics = val_fn(
+    model=model,
+    loader=loader,
+    device=device,
+    class_names=CLASS_NAMES,
+    measure_inference=True
+  )
+
+  results = {
+    "name": name,
+    "subset": subset_name,
+    "depth_mode": depth_mode,
+    "dataset": dataset_name,
+    "modality": modality,
+    "fusion_stage": fusion_stage,
+    "fusion_type": fusion_type,
+    "seed": seed,
+    "map": metrics["map"],
+    "map_50": metrics["map_50"],
+    "precision": metrics["precision"],
+    "recall": metrics["recall"],
+    "inference_time_ms": metrics["inference_time_ms"],
+    "num_images": len(loader.dataset)
+  }
+
+  print(f"mAP50-95:       {metrics['map']:.4f}")
+  print(f"mAP50:          {metrics['map_50']:.4f}")
+  print(f"Precision:      {metrics['precision']:.4f}")
+  print(f"Recall:         {metrics['recall']:.4f}")
+  print(f"Inference time: {metrics['inference_time_ms']:.2f} ms/image")
+
+  return results
+
+
 def evaluate_config(config, device):
   """Evaluate all models defined in a validation config."""
 
@@ -139,6 +276,10 @@ def evaluate_config(config, device):
   batch_size = validation.get("batch_size", 1)
   num_workers = validation.get("num_workers", 4)
   subsets = validation.get("subsets", ["all"])
+  depth_modes = validation.get(
+    "depth_modes",
+    ["normal", "muted", "shuffled"]
+  )
 
   print()
   print("=" * 80)
@@ -158,7 +299,9 @@ def evaluate_config(config, device):
       raise ValueError(f"Unknown dataset: {dataset_name}")
 
     if not checkpoint_path.exists():
-      raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+      raise FileNotFoundError(
+        f"Checkpoint not found: {checkpoint_path}"
+      )
 
     print()
     print("-" * 80)
@@ -191,60 +334,105 @@ def evaluate_config(config, device):
     model = components["model"]
     val_fn = components["val_fn"]
 
-    model = load_checkpoint(model, checkpoint_path, device)
+    model = load_checkpoint(
+      model,
+      checkpoint_path,
+      device
+    )
+
     model.to(device)
     model.eval()
 
+    evaluation_results = []
+
+    # Condition-specific evaluation.
+    # Uses normal aligned depth for RGB-D models.
     for subset_name in subsets:
-      subset_loader = create_subset_loader(val_loader, subset_name)
-
-      print()
-      print(f"Subset:       {subset_name}")
-      print(f"Images:       {len(subset_loader.dataset)}")
-
-      metrics = val_fn(
-        model=model,
-        loader=subset_loader,
-        device=device,
-        class_names=CLASS_NAMES,
-        measure_inference=True
+      subset_loader = create_subset_loader(
+        val_loader,
+        subset_name
       )
 
-      results = {
-        "name": name,
-        "subset": subset_name,
-        "dataset": dataset_name,
-        "modality": modality,
-        "fusion_stage": fusion_stage,
-        "fusion_type": fusion_type,
-        "seed": seed,
-        "map": metrics["map"],
-        "map_50": metrics["map_50"],
-        "precision": metrics["precision"],
-        "recall": metrics["recall"],
-        "inference_time_ms": metrics["inference_time_ms"],
-        "num_images": len(subset_loader.dataset)
-      }
+      results = evaluate_model(
+        model=model,
+        val_fn=val_fn,
+        loader=subset_loader,
+        device=device,
+        name=name,
+        subset_name=subset_name,
+        depth_mode="normal",
+        dataset_name=dataset_name,
+        modality=modality,
+        fusion_stage=fusion_stage,
+        fusion_type=fusion_type,
+        seed=seed
+      )
 
-      print(f"mAP50-95:       {metrics['map']:.4f}")
-      print(f"mAP50:          {metrics['map_50']:.4f}")
-      print(f"Precision:      {metrics['precision']:.4f}")
-      print(f"Recall:         {metrics['recall']:.4f}")
-      print(f"Inference time: {metrics['inference_time_ms']:.2f} ms/image")
+      evaluation_results.append(results)
 
-      output_path = save_results(model_type, results)
-      print(f"Saved to:       {output_path}")
+    # Depth-utilisation analysis.
+    # Only applicable to RGB-D models and only on the full validation set.
+    if modality == "rgbd":
+      for depth_mode in depth_modes:
+        if depth_mode == "normal":
+          continue
+
+        depth_loader = create_depth_ablation_loader(
+          val_loader,
+          mode=depth_mode,
+          seed=seed
+        )
+
+        results = evaluate_model(
+          model=model,
+          val_fn=val_fn,
+          loader=depth_loader,
+          device=device,
+          name=name,
+          subset_name="all",
+          depth_mode=depth_mode,
+          dataset_name=dataset_name,
+          modality=modality,
+          fusion_stage=fusion_stage,
+          fusion_type=fusion_type,
+          seed=seed
+        )
+
+        evaluation_results.append(results)
+
+    for results in evaluation_results:
+      output_path = save_results(
+        model_type,
+        results
+      )
+
+    print()
+    print(f"Saved to: {output_path}")
 
 
 def main():
-  parser = argparse.ArgumentParser(description="Evaluate final trained models")
-  parser.add_argument("configs", nargs="+", help="Validation YAML configuration files")
-  parser.add_argument("--device", default="cuda", help="Device to use")
+  parser = argparse.ArgumentParser(
+    description="Evaluate final trained models"
+  )
+
+  parser.add_argument(
+    "configs",
+    nargs="+",
+    help="Validation YAML configuration files"
+  )
+
+  parser.add_argument(
+    "--device",
+    default="cuda",
+    help="Device to use"
+  )
 
   args = parser.parse_args()
 
   if args.device.startswith("cuda") and not torch.cuda.is_available():
-    raise RuntimeError("CUDA requested but is not available")
+    raise RuntimeError(
+      "CUDA requested but is not available"
+    )
 
   device = torch.device(args.device)
 

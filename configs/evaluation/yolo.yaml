@@ -3,10 +3,15 @@ model: yolo
 validation:
   batch_size: 1
   num_workers: 4
-  subsets:
+
+  ssubsets:
     - all
     - water_occlusion
     - overlap
+  depth_modes:
+    - normal
+    - muted
+    - shuffled
 
 experiments:
   - name: rgb_seed13
