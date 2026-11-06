@@ -39,8 +39,8 @@ def create_cv_dataloaders(
   if fold_key not in manifest["folds"]:
     raise ValueError(f"Fold {fold} not found in {manifest_path}")
 
-  train_names = set(manifest["folds"][fold_key]["train"])
-  val_names = set(manifest["folds"][fold_key]["val"])
+  train_names = {Path(name).stem for name in manifest["folds"][fold_key]["train"]}
+  val_names = {Path(name).stem for name in manifest["folds"][fold_key]["val"]}
 
   # Full development dataset with training transforms.
   train_train = SnappyDataset(
@@ -79,8 +79,8 @@ def create_cv_dataloaders(
   ])
 
   image_names = (
-    [path.name for path in train_train.image_paths]
-    + [path.name for path in train_val.image_paths]
+    [path.stem for path in train_train.image_paths]
+    + [path.stem for path in train_val.image_paths]
   )
 
   train_indices = [
