@@ -2,10 +2,11 @@ from pathlib import Path
 
 import csv
 import random
+import json
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset, Subset
 
 from src.data import SnappyDataset, collate_fn, get_train_transforms, get_val_transforms
 
@@ -19,6 +20,127 @@ def set_seed(seed):
 
   if torch.cuda.is_available():
     torch.cuda.manual_seed_all(seed)
+
+def create_cv_dataloaders(
+  data_dir,
+  manifest_path,
+  fold,
+  batch_size,
+  num_workers,
+  image_size=(640, 640)
+):
+  """Create training and validation dataloaders for one cross-validation fold."""
+
+  with Path(manifest_path).open("r") as file:
+    manifest = json.load(file)
+
+  fold_key = str(fold)
+
+  if fold_key not in manifest["folds"]:
+    raise ValueError(f"Fold {fold} not found in {manifest_path}")
+
+  train_names = set(manifest["folds"][fold_key]["train"])
+  val_names = set(manifest["folds"][fold_key]["val"])
+
+  # Full development dataset with training transforms.
+  train_train = SnappyDataset(
+    root=data_dir,
+    split="train",
+    transform=get_train_transforms(image_size)
+  )
+
+  train_val = SnappyDataset(
+    root=data_dir,
+    split="val",
+    transform=get_train_transforms(image_size)
+  )
+
+  full_train_dataset = ConcatDataset([
+    train_train,
+    train_val
+  ])
+
+  # Same full dataset with validation transforms.
+  val_train = SnappyDataset(
+    root=data_dir,
+    split="train",
+    transform=get_val_transforms(image_size)
+  )
+
+  val_val = SnappyDataset(
+    root=data_dir,
+    split="val",
+    transform=get_val_transforms(image_size)
+  )
+
+  full_val_dataset = ConcatDataset([
+    val_train,
+    val_val
+  ])
+
+  image_names = (
+    [path.name for path in train_train.image_paths]
+    + [path.name for path in train_val.image_paths]
+  )
+
+  train_indices = [
+    index
+    for index, name in enumerate(image_names)
+    if name in train_names
+  ]
+
+  val_indices = [
+    index
+    for index, name in enumerate(image_names)
+    if name in val_names
+  ]
+
+  if len(train_indices) != len(train_names):
+    raise RuntimeError(
+      f"Expected {len(train_names)} training images, found {len(train_indices)}"
+    )
+
+  if len(val_indices) != len(val_names):
+    raise RuntimeError(
+      f"Expected {len(val_names)} validation images, found {len(val_indices)}"
+    )
+
+  train_dataset = Subset(
+    full_train_dataset,
+    train_indices
+  )
+
+  val_dataset = Subset(
+    full_val_dataset,
+    val_indices
+  )
+
+  train_loader = DataLoader(
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=True,
+    num_workers=num_workers,
+    pin_memory=True,
+    collate_fn=collate_fn,
+    persistent_workers=num_workers > 0
+  )
+
+  val_loader = DataLoader(
+    val_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    num_workers=num_workers,
+    pin_memory=True,
+    collate_fn=collate_fn
+  )
+
+  print(
+    f"Fold {fold}: "
+    f"{len(train_dataset)} train, "
+    f"{len(val_dataset)} val"
+  )
+
+  return train_loader, val_loader
 
 
 def create_dataloaders(data_dir, batch_size, num_workers, image_size=(640, 640)):
